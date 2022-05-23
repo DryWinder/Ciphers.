@@ -1,120 +1,110 @@
 import java.math.*;
 import java.util.*;
-public class RSA {
-    private int p;
-    private int q;
-    private int e;
-    private int n;
-    private int f_n;
-    private int d;
 
-    public RSA(int p, int q, int e) {
+public class RSA {
+    private BigInteger p;
+    private BigInteger q;
+    private BigInteger e;
+    private BigInteger n;
+    private BigInteger f_n;
+    private BigInteger d;
+
+    public RSA(BigInteger p, BigInteger q, BigInteger e) {
         this.p = p;
         this.q = q;
         this.e = e;
-        this.n = p*q;
-        this.f_n = (p-1)*(q-1);
-        this.d = D();
+        this.n = p.multiply(q);
+        this.f_n = (p.subtract(BigInteger.valueOf(1))).multiply(q.subtract(BigInteger.valueOf(1)));
+        this.d = e.modInverse(f_n);
     }
 
-    public void pr(int p, int q, int e){
+    public void pr(BigInteger p, BigInteger q, BigInteger e){
         RSA rsa = new RSA(p, q, e);
         System.out.println(this.n + " " + this.f_n);
     }
 
-    public int D(){
-        int res = 0;
-        for (int i = 0; i <= 9; i++) {
-            int x = 1 + (i * f_n);
 
-            if (x % e == 0) {
-                res = x / e;
-                break;
-            }
-        }
-        return res;
-    }
 
-    // res = c_power_d mod(n)
-    public int moduloEq(int c){
-        int c_power_d = c^d;
-        int res = 0;
-        for (int i = 0; i <= 9; i++) {
-            int x = 1 + (i * n);
-
-            if (x % 1/c_power_d == 0) {
-                res = x * c_power_d;
-                break;
-            }
-        }
-        return res;
+    public BigInteger encryptForInt(BigInteger message){
+        BigInteger c = (message.pow(e.intValue())).remainder(n);
+        return c;
     }
-    private int mod(int x, int n)
-    {
-        int res = ((x % n) + n) % n;
-        return res;
-    }
-
-    public int encryptForInt(int message){
-        double c = (Math.pow(message, e)) % n;
-        return (int)c;
-    }
-    public BigInteger decryptForInt(int c){
+    public BigInteger decryptForInt(BigInteger c){
         BigInteger message;
-        BigInteger N = BigInteger.valueOf(n);
-
-        BigInteger C = BigDecimal.valueOf(c).toBigInteger();
-        message = (C.pow(d)).mod(N);
-
-
-
+        message = c.modPow(d,n);
+        //System.out.println("Decrypt(c,d,n,message): " + c + " " + d + " " + n + " " + message );
         return message;
     }
 
-    public int[] strToInt(String message){
-        int[] intMessageArray = new int[message.length()];
+    public BigInteger[] strToInt(String message){
+        BigInteger[] intMessageArray = new BigInteger[message.length()];
         for (int i = 0; i < message.length(); i++) {
-            int elOfIntArr = (int) message.charAt(i);
+            BigInteger elOfIntArr = BigInteger.valueOf(((int) message.charAt(i)));
             intMessageArray[i] = elOfIntArr;
         }
-
         return intMessageArray;
     }
 
-    public int[] encryptForStringMessage(String message){
-        int[] intMessageArr = strToInt(message);
-        int[] encryptedIntMessageArr = new int[intMessageArr.length];
+    public BigInteger[] encryptForStringMessage(String message){
+        BigInteger[] intMessageArr = strToInt(message);
+        BigInteger[] encryptedIntMessageArr = new BigInteger[intMessageArr.length];
         for (int i = 0; i < intMessageArr.length; i++) {
-            double EncryptElemOfIntMessage = (Math.pow(intMessageArr[i], e)) % n;
-            int elOfEncryptMessageArr = (int) EncryptElemOfIntMessage;
-            encryptedIntMessageArr[i] = elOfEncryptMessageArr;
+            BigInteger EncryptElemOfIntMessage = (intMessageArr[i].pow(e.intValue())).remainder(n);
+            encryptedIntMessageArr[i] = EncryptElemOfIntMessage;
         }
-
         return encryptedIntMessageArr;
     }
 
-    public String decryptForStringMessage(int[] array){
-        char[] DecryptedCharMessageArr = new char[array.length];
+    public int[] decryptForStringMessage(BigInteger[] array){
+        int[] DecryptedIntMessageArr = new int[array.length];
         for (int i = 0; i < array.length; i++) {
-            BigInteger EncryptElemOfIntMessage = decryptForInt(array[i]);
-            int elOfDecryptMessage = EncryptElemOfIntMessage.intValue();
-            char elOfDecryptMessageArr = (char) elOfDecryptMessage;
+            BigInteger DecryptElemOfIntMessage = decryptForInt(array[i]);
+            //System.out.println();
+            //System.out.println("BigInt: " + DecryptElemOfIntMessage);
+            int elOfDecryptMessage = DecryptElemOfIntMessage.intValue();
+            DecryptedIntMessageArr[i] = elOfDecryptMessage;
+            //System.out.println("Int: " + elOfDecryptMessage);
+        }
+        return DecryptedIntMessageArr;
+    }
+
+    public BigInteger[] encrypt(RSA rsa, String message){
+        System.out.println("Encrypted sequence from message '" + message +"':");
+        BigInteger[] enc = rsa.encryptForStringMessage(message);
+        for (int i = 0; i < enc.length; i++) {
+            System.out.print(enc[i] + ", ");
+        }
+        return enc;
+    }
+
+    public String decrypt(RSA rsa, int[] encryptedSequence){
+        char[] DecryptedCharMessageArr = new char[encryptedSequence.length];
+        for (int i = 0; i < encryptedSequence.length; i++) {
+            char elOfDecryptMessageArr = (char) encryptedSequence[i];
             DecryptedCharMessageArr[i] = elOfDecryptMessageArr;
         }
-
         String decryptedMessage = new String(DecryptedCharMessageArr);
         return decryptedMessage;
     }
 
     public static void main(String[] args) {
 
-        RSA rsa = new RSA(23, 19, 17);
-        int[] enc = rsa.encryptForStringMessage("JACKPOTS");
-        for (int i = 0; i < enc.length; i++) {
-            System.out.print(enc[i] + ", ");
+        RSA rsa = new RSA(BigInteger.valueOf(19), BigInteger.valueOf(29), BigInteger.valueOf(41));
+
+        BigInteger[] encryptedSequence = rsa.encrypt(rsa, "LOCATION");
+
+        int[] intEncArr = {95, 243, 535, 373, 126, 346, 243, 393};
+        BigInteger[] encArr = new BigInteger[intEncArr.length];
+        for (int i = 0; i < intEncArr.length ; i++)
+            encArr[i] = BigInteger.valueOf(intEncArr[i]);
+
+        int[] decSeq = rsa.decryptForStringMessage(encArr);
+        System.out.println("\nDecrypted sequence: ");
+        for (int i = 0; i < decSeq.length; i++) {
+            System.out.print(decSeq[i] + ", ");
         }
-        int[] encArr = {188, 371, 25, 287, 46, 282, 296, 46};
-        System.out.println(rsa.decryptForStringMessage(encArr));
-        //System.out.println(rsa.decryptForInt(4051753));
+        System.out.println("\nDecrypted message: " + rsa.decrypt(rsa, decSeq));
+        //System.out.println(rsa.decryptForStringMessage(encArr));
+        //System.out.println(rsa.decryptForInt(BigInteger.valueOf(4051753)));
     }
 }
